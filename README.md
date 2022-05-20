@@ -17,9 +17,9 @@ YAFFS 遵循 GPL，详见 YAFFS 官方網站。
 
 - RT-Thread 4.1.1+
 
-## 2、如何打开 NUemWin
+## 2、如何下載源碼包
 
-使用 NUemWin package 需要在 RT-Thread 的包管理器中选择它，具体路径如下：
+使用 YAFFS2 package 需要在 RT-Thread 的包管理器中选择它，具体路径如下：
 
 ```
 RT-Thread online packages
