@@ -31,7 +31,4 @@ int yflash_MarkNANDBlockBad(struct yaffs_dev *dev, int block_no);
 int yflash_QueryNANDBlock(struct yaffs_dev *dev, int block_no,
 			enum yaffs_block_state *state, u32 *seq_number);
 
-
-void yaffs_mtd_drv_install(struct yaffs_dev *dev);
-
 #endif

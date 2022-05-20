@@ -17,10 +17,10 @@
 
 #include "rtthread.h"
 
-unsigned int yaffs_trace_mask = 0xffffffff;
+unsigned int yaffs_trace_mask = 0;
 
 static int yaffsfs_lastError;
-static rt_mutex_t mutex = 0;
+static rt_mutex_t mutex = RT_NULL;
 
 void yaffsfs_SetError(int err)
 {
@@ -45,9 +45,9 @@ void yaffsfs_Unlock(void)
 
 void yaffsfs_LockInit(void)
 {
-    mutex = rt_mutex_create("ymutex", RT_IPC_FLAG_FIFO);
+    if ( mutex==RT_NULL )
+        mutex = rt_mutex_create("ymutex", RT_IPC_FLAG_PRIO);
 }
-
 
 u32 yaffsfs_CurrentTime(void)
 {
@@ -56,11 +56,7 @@ u32 yaffsfs_CurrentTime(void)
 
 void *yaffsfs_malloc(size_t size)
 {
-    void *m = NULL;
-
-    m = rt_malloc(size);
-
-    return m;
+    return rt_malloc(size);
 }
 
 void yaffsfs_free(void *ptr)

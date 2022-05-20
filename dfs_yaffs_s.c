@@ -5,17 +5,6 @@
 #include "yaffs/yaffs_guts.h"
 #include "yaffs/direct/yaffsfs.h"
 #include "yaffs/direct/yaffs_flashif.h"
-/*
- * RT-Thread DFS Interface for yaffs
- */
-
-
-struct yaffs_dev    yaffs_device;
-struct rt_mtd_nand_device *yaffs_mtd_nand;
-
-
-/* make sure the following struct var had been initilased to 0! */
-
 
 static int dfs_yfile_open(struct dfs_fd *file)
 {
@@ -205,70 +194,49 @@ static int dfs_yfile_getdents(struct dfs_fd *file, struct dirent *dirp, uint32_t
 
 static int dfs_yaffs_mount(struct dfs_filesystem *fs, unsigned long rwflag, const void *data)
 {
+    if (yaffs_mount(fs->path) < 0)
+        return yaffsfs_GetLastError();
 
-    int ret;
-	
-	  yaffs_mount(fs->path);
-    return ret;
-		
+    return 0;	
 }
 
 static int dfs_yaffs_unmount(struct dfs_filesystem *fs)
 {
-    int ret = 0;
-    struct yaffs_dev *dev;
-    dev = yaffs_getdev(fs->path);
-  
-   
     if (yaffs_unmount(fs->path) < 0)
         return yaffsfs_GetLastError();
 
-    return ret;
+    return 0;
 }
 
 static int dfs_yaffs_mkfs(rt_device_t dev_id)
 {
-  //  rt_mtd_t *mtd;
-	 int ret = 0;
-	  struct rt_mtd_nand_device *mtd;
-    struct yaffs_dev *dev;
     extern int yaffs_format_reldev(struct yaffs_dev *dev,
-		                           int unmount_flag,
-		                           int force_unmount_flag,
-		                           int remount_flag);
+                                   int unmount_flag,
+                                   int force_unmount_flag,
+                                   int remount_flag);
 
-    if (dev_id->type != RT_Device_Class_MTD)
+    rt_mtd_nand_t mtd;
+
+    mtd = (rt_mtd_nand_t)dev_id;
+    RT_ASSERT(mtd);
+
+    if ( !mtd->priv )
         return -1;
 
-   // mtd = (rt_mtd_nand_device*)dev_id;
-//		mtd->
-//    if (!mtd || mtd->type != MTD_TYPE_NAND)
-//        return -1;
-//    if (!mtd->priv)
-//        return -1;
-
-  //  dev = (struct yaffs_dev *)mtd->ops;
-		
-	//	dev = yaffs_getdev();
-	  	yaffs_format("/mnt/yaffs",1, 1, 1 );
-		  yaffs_mount("/mnt/yaffs");
-      return ret;
-  
+    return yaffs_format_reldev((struct yaffs_dev *)mtd->priv, 1, 1, 1);
 }
 
 static int dfs_yaffs_statfs(struct dfs_filesystem *fs, struct statfs *buf)
 {
-  
-	  struct rt_mtd_nand_device *mtd;
-    mtd = (struct rt_mtd_nand_device *)fs->dev_id;
-    RT_ASSERT(mtd != RT_NULL);
-    struct yaffs_dev *dev;
-	
-	  dev = yaffs_getdev(fs->path);
-	
+    rt_mtd_nand_t mtd;
+
+    RT_ASSERT(fs);
+    mtd = (rt_mtd_nand_t)fs->dev_id;
+    RT_ASSERT(mtd);
+
     buf->f_bsize = mtd->page_size;
-    buf->f_blocks = mtd->block_end -mtd->block_start;
-    buf->f_bfree = yaffs_freespace_reldev(dev) / mtd->page_size;
+    buf->f_blocks = mtd->block_end - mtd->block_start;
+    buf->f_bfree = yaffs_freespace_reldev(yaffs_getdev(fs->path)) / mtd->page_size;
 
     return 0;
 }
@@ -361,43 +329,11 @@ static const struct dfs_filesystem_ops dfs_yaffs_ops =
     dfs_yaffs_rename,
 };
 
-int yaffs_start_up(void)
-{
-		yaffs_mtd_nand = RT_MTD_NAND_DEVICE(rt_device_find("nand2"));
-	
-    rt_memset(&yaffs_device, 0, sizeof(yaffs_device));
-    yaffsfs_OSInitialisation();
-
-    yaffs_device.param.name = "/mnt/yaffs";
-	  yaffs_device.param.inband_tags = 1;
-    yaffs_device.param.n_caches = 10;
-    yaffs_device.param.start_block =   yaffs_mtd_nand->block_start;
-    yaffs_device.param.end_block   =   yaffs_mtd_nand->block_end;;
-    yaffs_device.param.total_bytes_per_chunk = yaffs_mtd_nand->page_size;
-    yaffs_device.param.spare_bytes_per_chunk = yaffs_mtd_nand->oob_size;
-    yaffs_device.param.use_nand_ecc = 0;
-    yaffs_device.param.is_yaffs2 = 1;
-   	yaffs_device.param.refresh_period = 1000;
-	  yaffs_device.param.no_tags_ecc =1;
-	  yaffs_device.param.empty_lost_n_found = 1;
-    yaffs_device.param.n_reserved_blocks = 5;
-    yaffs_device.param.enable_xattr =1;
-    yaffs_device.param.hide_lost_n_found =1;
-	  yaffs_device.param.always_check_erased = 0;
-    yaffs_device.param.chunks_per_block = yaffs_mtd_nand->pages_per_block;
-    yaffs_device.driver_context = yaffs_mtd_nand;
-
-    yaffs_mtd_drv_install(&yaffs_device);
-    yaffs_add_device(&yaffs_device);
- 
-    return 0;
-}
-
-
-
-
 int dfs_yaffs_init(void)
 {
+    /* Register yaffs file system */
+
+    yaffsfs_OSInitialisation();
     return dfs_register(&dfs_yaffs_ops);
 }
 INIT_COMPONENT_EXPORT(dfs_yaffs_init);

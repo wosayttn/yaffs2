@@ -29,20 +29,22 @@ void yaffs_bug_fn(const char *file_name, int line_no);
 
 #define BUG() do { yaffs_bug_fn(__FILE__, __LINE__); } while (0)
 
+#ifdef CONFIG_YAFFS_USE_32_BIT_TIME_T
+	#define YTIME_T u32
+#else
+	#define YTIME_T u64
+#endif
 
 #define YCHAR char
 #define YUCHAR unsigned char
 #define _Y(x) x
 
-
-typedef signed long      off_t;
-typedef int              mode_t;
-#define loff_t int
-
 #ifndef Y_LOFF_T
 #define Y_LOFF_T loff_t
 #endif
 
+/* Some RTOSs (eg. VxWorks) need strnlen. */
+size_t strnlen(const char *s, size_t maxlen);
 
 #define yaffs_strcat(a, b)	strcat(a, b)
 #define yaffs_strcpy(a, b)	strcpy(a, b)
@@ -76,11 +78,15 @@ typedef int              mode_t;
 
 #define cond_resched()  do {} while (0)
 
+#ifdef CONFIG_YAFFS_NO_TRACE
+#define yaffs_trace(...) do { } while (0)
+#else
 #define yaffs_trace(msk, fmt, ...) do { \
 	if (yaffs_trace_mask & (msk)) \
 		rt_kprintf("yaffs: " fmt "\n", ##__VA_ARGS__); \
 } while (0)
 
+#endif
 
 #define YAFFS_LOSTNFOUND_NAME		"lost+found"
 #define YAFFS_LOSTNFOUND_PREFIX		"obj"

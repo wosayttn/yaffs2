@@ -4,12 +4,7 @@ static int write_chunk(struct yaffs_dev *dev, int nand_chunk,
                        const u8 *data, int data_len,
                        const u8 *oob, int oob_len)
 {
-    int ret;
-
-	  ret = rt_mtd_nand_write(RT_MTD_NAND_DEVICE(dev->driver_context),
-                           nand_chunk,  data, data_len, oob, oob_len);
-
-    return ret? YAFFS_FAIL : YAFFS_OK;
+    return rt_mtd_nand_write(RT_MTD_NAND_DEVICE(dev->driver_context), nand_chunk,  data, data_len, oob, oob_len) ? YAFFS_FAIL : YAFFS_OK;
 }
 
 static int read_chunk(struct yaffs_dev *dev, int nand_chunk,
@@ -17,37 +12,15 @@ static int read_chunk(struct yaffs_dev *dev, int nand_chunk,
                       u8 *oob, int oob_len,
                       enum yaffs_ecc_result *ecc_result)
 {
+    int ret = -1;
 
-		
-		
-		    int ret;
-
-  //  page = block * dev->p ages_per_block + page;
     if (data == NULL && oob == NULL)
     {
-#if defined(RT_UFFS_USE_CHECK_MARK_FUNCITON)
-        RT_ASSERT(0); //should not be here
-#else
-        /* check block status: bad or good */
-//        rt_uint8_t spare[UFFS_MAX_SPARE_SIZE];
-
-//        rt_memset(spare, 0, UFFS_MAX_SPARE_SIZE);
-
-//        rt_mtd_nand_read(RT_MTD_NAND_DEVICE(dev->driver_context),
-//                         nand_chunk, RT_NULL, 0,
-//                         oob, dev->driver_context->);//dev->mem.spare_data_size
-
-//        res = spare[dev->attr->block_status_offs] == 0xFF ?
-//                               UFFS_FLASH_NO_ERR : UFFS_FLASH_BAD_BLK;
-
-        return ret;
-#endif
+        goto exit_read_chunk;
     }
 
     ret = rt_mtd_nand_read(RT_MTD_NAND_DEVICE(dev->driver_context),
                      nand_chunk, data, data_len, oob, oob_len);
-
-		//ecc_result = YAFFS_ECC_RESULT_NO_ERROR
 		
 		if (ret == RT_MTD_EOK)
     {
@@ -62,29 +35,24 @@ static int read_chunk(struct yaffs_dev *dev, int nand_chunk,
         *ecc_result = YAFFS_ECC_RESULT_UNFIXED;
     }
 
+exit_read_chunk:
+
     return ret ? YAFFS_FAIL : YAFFS_OK;	
 }
 
 static int erase(struct yaffs_dev *dev, int block_no)
 {
-    int ret;
-    ret = rt_mtd_nand_erase_block(RT_MTD_NAND_DEVICE(dev->driver_context), block_no);
-    return ret ? YAFFS_FAIL : YAFFS_OK;
+    return rt_mtd_nand_erase_block(RT_MTD_NAND_DEVICE(dev->driver_context), block_no) ? YAFFS_FAIL : YAFFS_OK;
 }
 
 static int mark_bad(struct yaffs_dev *dev, int block_no)
 {
-    rt_mtd_nand_mark_badblock(RT_MTD_NAND_DEVICE(dev->driver_context), block_no);
-    return YAFFS_OK;
+    return rt_mtd_nand_mark_badblock(RT_MTD_NAND_DEVICE(dev->driver_context), block_no) ? YAFFS_FAIL : YAFFS_OK;
 }
 
 static int check_bad(struct yaffs_dev *dev, int block_no)
 {
-    int ret;
-   ret = rt_mtd_nand_check_block(RT_MTD_NAND_DEVICE(dev->driver_context), block_no);
-   return ret ? YAFFS_FAIL : YAFFS_OK;
-	 return YAFFS_OK;
-
+   return rt_mtd_nand_check_block(RT_MTD_NAND_DEVICE(dev->driver_context), block_no) ? YAFFS_FAIL : YAFFS_OK;
 }
 
 static int initialise(struct yaffs_dev *dev)
@@ -105,38 +73,47 @@ void yaffs_mtd_drv_install(struct yaffs_dev *dev)
     dev->drv.drv_mark_bad_fn     = mark_bad;
     dev->drv.drv_erase_fn        = erase;
     dev->drv.drv_read_chunk_fn   = read_chunk;
-    dev->drv.drv_write_chunk_fn   = write_chunk;
+    dev->drv.drv_write_chunk_fn  = write_chunk;
 }
 
-RT_WEAK int yaffs_start_up(void)
+RT_WEAK int yaffs_start_up(rt_mtd_nand_t psMtdNandDev, const char* pcMountingPath)
 {
-//    static struct yaffs_dev flash;
-//    rt_mtd_t *mtd;
+    rt_device_t psRTDev;
+    RT_ASSERT(psMtdNandDev);
 
-//    mtd = rt_mtd_get("nand1");
-//    if (!mtd)
-//        return -1;
-//    if (mtd->type != MTD_TYPE_NAND)
-//        return -1;
+    struct yaffs_dev* psYaffsDev = (struct yaffs_dev* )rt_malloc(sizeof(struct yaffs_dev));
+    if ( !psYaffsDev )
+    {
+        rt_kprintf("Fail to memory allocation.\n");
+			  goto exit_yaffs_start_up;
+    }
+    rt_memset(psYaffsDev, 0, sizeof(struct yaffs_dev));
 
-//    rt_memset(&flash, 0, sizeof(flash));
-//    yaffsfs_OSInitialisation();
+    psYaffsDev->param.name = pcMountingPath;
+    psYaffsDev->param.inband_tags = 1;
+    psYaffsDev->param.n_caches = 10;
+    psYaffsDev->param.start_block = psMtdNandDev->block_start;
+    psYaffsDev->param.end_block   = psMtdNandDev->block_end;;
+    psYaffsDev->param.total_bytes_per_chunk = psMtdNandDev->page_size;
+    psYaffsDev->param.spare_bytes_per_chunk = psMtdNandDev->oob_size;
+    psYaffsDev->param.use_nand_ecc = 1;
+    psYaffsDev->param.is_yaffs2 = 1;
+    psYaffsDev->param.refresh_period = 1000;
+    psYaffsDev->param.no_tags_ecc =1;
+    psYaffsDev->param.empty_lost_n_found = 1;
+    psYaffsDev->param.n_reserved_blocks = 5;
+    psYaffsDev->param.enable_xattr =1;
+    psYaffsDev->param.hide_lost_n_found =1;
+    psYaffsDev->param.always_check_erased = 0;
+    psYaffsDev->param.chunks_per_block = psMtdNandDev->pages_per_block;
+    psYaffsDev->driver_context = psMtdNandDev;							 
 
-//    flash.param.name = "/nf";
-//    flash.param.n_caches = 0;
-//    flash.param.start_block = 0;
-//    flash.param.end_block   = (mtd->size / mtd->block_size) - 1;
-//    flash.param.total_bytes_per_chunk = mtd->sector_size;
-//    flash.param.spare_bytes_per_chunk = mtd->oob_size;
-//    flash.param.use_nand_ecc = 0;
-//    flash.param.is_yaffs2 = 1;
-//    flash.param.n_reserved_blocks = 32;
-//    flash.param.chunks_per_block = mtd->block_size / mtd->sector_size;
-//    flash.driver_context = mtd;
-//    mtd->priv = &flash;
+    yaffs_mtd_drv_install(psYaffsDev);
+    yaffs_add_device(psYaffsDev);
 
-//    yaffs_mtd_drv_install(&flash);
-//    yaffs_add_device(&flash);
+exit_yaffs_start_up:
 
+    psMtdNandDev->priv = (void*)psYaffsDev;
     return 0;
 }
+
