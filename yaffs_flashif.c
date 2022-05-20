@@ -20,9 +20,9 @@ static int read_chunk(struct yaffs_dev *dev, int nand_chunk,
     }
 
     ret = rt_mtd_nand_read(RT_MTD_NAND_DEVICE(dev->driver_context),
-                     nand_chunk, data, data_len, oob, oob_len);
-		
-		if (ret == RT_MTD_EOK)
+                           nand_chunk, data, data_len, oob, oob_len);
+
+    if (ret == RT_MTD_EOK)
     {
         *ecc_result = YAFFS_ECC_RESULT_NO_ERROR;
     }
@@ -37,7 +37,7 @@ static int read_chunk(struct yaffs_dev *dev, int nand_chunk,
 
 exit_read_chunk:
 
-    return ret ? YAFFS_FAIL : YAFFS_OK;	
+    return ret ? YAFFS_FAIL : YAFFS_OK;
 }
 
 static int erase(struct yaffs_dev *dev, int block_no)
@@ -52,7 +52,7 @@ static int mark_bad(struct yaffs_dev *dev, int block_no)
 
 static int check_bad(struct yaffs_dev *dev, int block_no)
 {
-   return rt_mtd_nand_check_block(RT_MTD_NAND_DEVICE(dev->driver_context), block_no) ? YAFFS_FAIL : YAFFS_OK;
+    return rt_mtd_nand_check_block(RT_MTD_NAND_DEVICE(dev->driver_context), block_no) ? YAFFS_FAIL : YAFFS_OK;
 }
 
 static int initialise(struct yaffs_dev *dev)
@@ -76,16 +76,16 @@ void yaffs_mtd_drv_install(struct yaffs_dev *dev)
     dev->drv.drv_write_chunk_fn  = write_chunk;
 }
 
-RT_WEAK int yaffs_start_up(rt_mtd_nand_t psMtdNandDev, const char* pcMountingPath)
+RT_WEAK int yaffs_start_up(rt_mtd_nand_t psMtdNandDev, const char *pcMountingPath)
 {
     rt_device_t psRTDev;
     RT_ASSERT(psMtdNandDev);
 
-    struct yaffs_dev* psYaffsDev = (struct yaffs_dev* )rt_malloc(sizeof(struct yaffs_dev));
-    if ( !psYaffsDev )
+    struct yaffs_dev *psYaffsDev = (struct yaffs_dev *)rt_malloc(sizeof(struct yaffs_dev));
+    if (!psYaffsDev)
     {
         rt_kprintf("Fail to memory allocation.\n");
-			  goto exit_yaffs_start_up;
+        goto exit_yaffs_start_up;
     }
     rt_memset(psYaffsDev, 0, sizeof(struct yaffs_dev));
 
@@ -99,21 +99,21 @@ RT_WEAK int yaffs_start_up(rt_mtd_nand_t psMtdNandDev, const char* pcMountingPat
     psYaffsDev->param.use_nand_ecc = 1;
     psYaffsDev->param.is_yaffs2 = 1;
     psYaffsDev->param.refresh_period = 1000;
-    psYaffsDev->param.no_tags_ecc =1;
+    psYaffsDev->param.no_tags_ecc = 1;
     psYaffsDev->param.empty_lost_n_found = 1;
     psYaffsDev->param.n_reserved_blocks = 5;
-    psYaffsDev->param.enable_xattr =1;
-    psYaffsDev->param.hide_lost_n_found =1;
+    psYaffsDev->param.enable_xattr = 1;
+    psYaffsDev->param.hide_lost_n_found = 1;
     psYaffsDev->param.always_check_erased = 0;
     psYaffsDev->param.chunks_per_block = psMtdNandDev->pages_per_block;
-    psYaffsDev->driver_context = psMtdNandDev;							 
+    psYaffsDev->driver_context = psMtdNandDev;
 
     yaffs_mtd_drv_install(psYaffsDev);
     yaffs_add_device(psYaffsDev);
 
 exit_yaffs_start_up:
 
-    psMtdNandDev->priv = (void*)psYaffsDev;
+    psMtdNandDev->priv = (void *)psYaffsDev;
     return 0;
 }
 

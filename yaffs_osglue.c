@@ -45,7 +45,7 @@ void yaffsfs_Unlock(void)
 
 void yaffsfs_LockInit(void)
 {
-    if ( mutex==RT_NULL )
+    if (mutex == RT_NULL)
         mutex = rt_mutex_create("ymutex", RT_IPC_FLAG_PRIO);
 }
 

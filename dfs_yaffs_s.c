@@ -20,7 +20,7 @@ static int dfs_yfile_open(struct dfs_fd *file)
     oflag = file->flags;
     if (oflag & O_DIRECTORY)
     {
-        yaffs_DIR * dir;
+        yaffs_DIR *dir;
         if (oflag & O_CREAT)
         {
             result = yaffs_mkdir_reldir(obj, file->path, 0x777);
@@ -148,11 +148,11 @@ static int dfs_yfile_lseek(struct dfs_fd *file, rt_off_t offset)
 static int dfs_yfile_getdents(struct dfs_fd *file, struct dirent *dirp, uint32_t count)
 {
     rt_uint32_t index;
-    struct dirent* d;
-    yaffs_DIR* dir;
-    struct yaffs_dirent * yaffs_d;
+    struct dirent *d;
+    yaffs_DIR *dir;
+    struct yaffs_dirent *yaffs_d;
 
-    dir = (yaffs_DIR*)(file->data);
+    dir = (yaffs_DIR *)(file->data);
     RT_ASSERT(dir != RT_NULL);
 
     /* make integer count, usually count is 1 */
@@ -197,7 +197,7 @@ static int dfs_yaffs_mount(struct dfs_filesystem *fs, unsigned long rwflag, cons
     if (yaffs_mount(fs->path) < 0)
         return yaffsfs_GetLastError();
 
-    return 0;	
+    return 0;
 }
 
 static int dfs_yaffs_unmount(struct dfs_filesystem *fs)
@@ -210,7 +210,7 @@ static int dfs_yaffs_unmount(struct dfs_filesystem *fs)
 
 static int dfs_yaffs_mkfs(rt_device_t dev_id)
 {
-    extern int yaffs_format_reldev(struct yaffs_dev *dev,
+    extern int yaffs_format_reldev(struct yaffs_dev * dev,
                                    int unmount_flag,
                                    int force_unmount_flag,
                                    int remount_flag);
@@ -220,7 +220,7 @@ static int dfs_yaffs_mkfs(rt_device_t dev_id)
     mtd = (rt_mtd_nand_t)dev_id;
     RT_ASSERT(mtd);
 
-    if ( !mtd->priv )
+    if (!mtd->priv)
         return -1;
 
     return yaffs_format_reldev((struct yaffs_dev *)mtd->priv, 1, 1, 1);
